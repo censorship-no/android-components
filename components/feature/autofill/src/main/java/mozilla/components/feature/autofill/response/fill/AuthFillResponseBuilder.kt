@@ -14,6 +14,7 @@ import android.os.Build
 import android.os.Parcel
 import android.service.autofill.FillResponse
 import android.service.autofill.InlinePresentation
+import android.service.autofill.Presentations
 import android.view.autofill.AutofillId
 import android.widget.RemoteViews
 import android.widget.inline.InlinePresentationSpec
@@ -26,7 +27,7 @@ import mozilla.components.feature.autofill.ui.AbstractAutofillUnlockActivity
 
 internal data class AuthFillResponseBuilder(
     private val parsedStructure: ParsedStructure,
-    private val maxSuggestionCount: Int
+    private val maxSuggestionCount: Int,
 ) : FillResponseBuilder {
 
     @SuppressLint("NewApi")
@@ -34,7 +35,7 @@ internal data class AuthFillResponseBuilder(
     override fun build(
         context: Context,
         configuration: AutofillConfiguration,
-        imeSpec: InlinePresentationSpec?
+        imeSpec: InlinePresentationSpec?,
     ): FillResponse {
         val builder = FillResponse.Builder()
 
@@ -42,15 +43,16 @@ internal data class AuthFillResponseBuilder(
 
         val title = context.getString(
             R.string.mozac_feature_autofill_popup_unlock_application,
-            configuration.applicationName
+            configuration.applicationName,
         )
 
-        val authPresentation = RemoteViews(context.packageName, android.R.layout.simple_list_item_1).apply {
-            setTextViewText(
-                android.R.id.text1,
-                title
-            )
-        }
+        val authPresentation =
+            RemoteViews(context.packageName, android.R.layout.simple_list_item_1).apply {
+                setTextViewText(
+                    android.R.id.text1,
+                    title,
+                )
+            }
 
         val authIntent = Intent(context, configuration.unlockActivity)
 
@@ -62,7 +64,7 @@ internal data class AuthFillResponseBuilder(
 
             authIntent.putExtra(
                 AbstractAutofillUnlockActivity.EXTRA_PARSED_STRUCTURE,
-                this.marshall()
+                this.marshall(),
             )
 
             recycle()
@@ -71,23 +73,24 @@ internal data class AuthFillResponseBuilder(
         authIntent.putExtra(AbstractAutofillUnlockActivity.EXTRA_IME_SPEC, imeSpec)
         authIntent.putExtra(
             AbstractAutofillUnlockActivity.EXTRA_MAX_SUGGESTION_COUNT,
-            maxSuggestionCount
+            maxSuggestionCount,
         )
         val authPendingIntent = PendingIntent.getActivity(
             context,
             configuration.activityRequestCode,
             authIntent,
-            PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_MUTABLE
+            PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_MUTABLE,
         )
         val intentSender: IntentSender = authPendingIntent.intentSender
 
         val icon: Icon = Icon.createWithResource(context, R.drawable.fingerprint_dialog_fp_icon)
-        val authInlinePresentation = createInlinePresentation(authPendingIntent, imeSpec, title, icon)
+        val authInlinePresentation =
+            createInlinePresentation(authPendingIntent, imeSpec, title, icon)
         builder.setAuthentication(
             autofillIds.toTypedArray(),
             intentSender,
             authInlinePresentation,
-            authPresentation
+            authPresentation,
         )
 
         return builder.build()
@@ -99,11 +102,24 @@ internal fun FillResponse.Builder.setAuthentication(
     ids: Array<AutofillId>,
     authentication: IntentSender,
     inlinePresentation: InlinePresentation? = null,
-    presentation: RemoteViews
+    presentation: RemoteViews,
 ): FillResponse.Builder {
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && inlinePresentation != null) {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val presentations: Presentations.Builder = Presentations.Builder()
+        presentations.apply {
+            inlinePresentation?.let {
+                setInlinePresentation(it)
+                setInlineTooltipPresentation(inlinePresentation)
+            }
+            setMenuPresentation(presentation)
+            setDialogPresentation(presentation)
+        }.build()
+        this.setAuthentication(ids, authentication, presentations.build())
+    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        @Suppress("DEPRECATION")
         this.setAuthentication(ids, authentication, presentation, inlinePresentation)
     } else {
+        @Suppress("DEPRECATION")
         this.setAuthentication(ids, authentication, presentation)
     }
 }

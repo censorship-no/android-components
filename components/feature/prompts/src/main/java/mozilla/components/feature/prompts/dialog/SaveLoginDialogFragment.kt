@@ -44,6 +44,7 @@ import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
 import mozilla.components.support.ktx.android.view.hideKeyboard
 import mozilla.components.support.ktx.android.view.toScope
+import mozilla.components.support.utils.ext.getParcelableCompat
 import kotlin.reflect.KProperty
 import com.google.android.material.R as MaterialR
 
@@ -53,7 +54,9 @@ private const val KEY_LOGIN_PASSWORD = "KEY_LOGIN_PASSWORD"
 private const val KEY_LOGIN_ORIGIN = "KEY_LOGIN_ORIGIN"
 private const val KEY_LOGIN_FORM_ACTION_ORIGIN = "KEY_LOGIN_FORM_ACTION_ORIGIN"
 private const val KEY_LOGIN_HTTP_REALM = "KEY_LOGIN_HTTP_REALM"
-@VisibleForTesting internal const val KEY_LOGIN_ICON = "KEY_LOGIN_ICON"
+
+@VisibleForTesting
+internal const val KEY_LOGIN_ICON = "KEY_LOGIN_ICON"
 
 /**
  * [android.support.v4.app.DialogFragment] implementation to display a
@@ -74,11 +77,18 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
     private val origin by lazy { safeArguments.getString(KEY_LOGIN_ORIGIN)!! }
     private val formActionOrigin by lazy { safeArguments.getString(KEY_LOGIN_FORM_ACTION_ORIGIN) }
     private val httpRealm by lazy { safeArguments.getString(KEY_LOGIN_HTTP_REALM) }
+
     @VisibleForTesting
-    internal val icon by lazy { safeArguments.getParcelable<Bitmap>(KEY_LOGIN_ICON) }
+    internal val icon by lazy {
+        safeArguments.getParcelableCompat(
+            KEY_LOGIN_ICON,
+            Bitmap::class.java,
+        )
+    }
 
     @VisibleForTesting
     internal var username by SafeArgString(KEY_LOGIN_USERNAME)
+
     @VisibleForTesting
     internal var password by SafeArgString(KEY_LOGIN_PASSWORD)
 
@@ -113,7 +123,7 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
+        savedInstanceState: Bundle?,
     ): View {
         /*
          * If an implementation of [LoginExceptions] is hooked up to [PromptFeature], we will not
@@ -165,14 +175,15 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
 
     private fun onPositiveClickAction() {
         feature?.onConfirm(
-            sessionId, promptRequestUID,
+            sessionId,
+            promptRequestUID,
             LoginEntry(
                 origin = origin,
                 formActionOrigin = formActionOrigin,
                 httpRealm = httpRealm,
                 username = username,
-                password = password
-            )
+                password = password,
+            ),
         )
         emitSaveFact()
         dismiss()
@@ -192,7 +203,7 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
         return LayoutInflater.from(requireContext()).inflate(
             R.layout.mozac_feature_prompt_save_login_prompt,
             container,
-            false
+            false,
         )
     }
 
@@ -200,23 +211,25 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
         val usernameEditText = view.findViewById<TextInputEditText>(R.id.username_field)
 
         usernameEditText.setText(username)
-        usernameEditText.addTextChangedListener(object : TextWatcher {
-            override fun afterTextChanged(editable: Editable) {
-                username = editable.toString()
-                // Update accesses member state, so it must be called after username is set
-                update()
-            }
+        usernameEditText.addTextChangedListener(
+            object : TextWatcher {
+                override fun afterTextChanged(editable: Editable) {
+                    username = editable.toString()
+                    // Update accesses member state, so it must be called after username is set
+                    update()
+                }
 
-            override fun beforeTextChanged(
-                s: CharSequence?,
-                start: Int,
-                count: Int,
-                after: Int
-            ) = Unit
+                override fun beforeTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    count: Int,
+                    after: Int,
+                ) = Unit
 
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) =
-                Unit
-        })
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) =
+                    Unit
+            },
+        )
 
         with(usernameEditText) {
             onDone(false) {
@@ -229,29 +242,37 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
     private fun bindPassword(view: View) {
         val passwordEditText = view.findViewById<TextInputEditText>(R.id.password_field)
 
-        passwordEditText.addTextChangedListener(object : TextWatcher {
-            override fun afterTextChanged(editable: Editable) {
-                // Note that password is accessed by `fun update`
-                password = editable.toString()
-                if (password.isEmpty()) {
-                    setViewState(
-                        loginValid = false,
-                        passwordErrorText =
-                        context?.getString(R.string.mozac_feature_prompt_error_empty_password)
-                    )
-                } else {
-                    setViewState(
-                        loginValid = true,
-                        passwordErrorText = ""
-                    )
+        passwordEditText.addTextChangedListener(
+            object : TextWatcher {
+                override fun afterTextChanged(editable: Editable) {
+                    // Note that password is accessed by `fun update`
+                    password = editable.toString()
+                    if (password.isEmpty()) {
+                        setViewState(
+                            loginValid = false,
+                            passwordErrorText =
+                            context?.getString(R.string.mozac_feature_prompt_error_empty_password),
+                        )
+                    } else {
+                        setViewState(
+                            loginValid = true,
+                            passwordErrorText = "",
+                        )
+                    }
                 }
-            }
 
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) =
-                Unit
+                override fun beforeTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    count: Int,
+                    after: Int,
+                ) =
+                    Unit
 
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
-        })
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) =
+                    Unit
+            },
+        )
         passwordEditText.setText(password)
 
         with(passwordEditText) {
@@ -275,7 +296,7 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
     internal fun setImageViewTint(imageView: ImageView) {
         val tintColor = ContextCompat.getColor(
             requireContext(),
-            requireContext().theme.resolveAttribute(android.R.attr.textColorPrimary)
+            requireContext().theme.resolveAttribute(android.R.attr.textColorPrimary),
         )
         ImageViewCompat.setImageTintList(imageView, ColorStateList.valueOf(tintColor))
     }
@@ -290,7 +311,7 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
             formActionOrigin = formActionOrigin,
             httpRealm = httpRealm,
             username = username,
-            password = password
+            password = password,
         )
 
         try {
@@ -315,21 +336,21 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
                         setViewState(
                             headline = context?.getString(R.string.mozac_feature_prompt_login_save_headline),
                             negativeText = context?.getString(R.string.mozac_feature_prompt_never_save),
-                            confirmText = context?.getString(R.string.mozac_feature_prompt_save_confirmation)
+                            confirmText = context?.getString(R.string.mozac_feature_prompt_save_confirmation),
                         )
                     }
                     is Result.CanBeUpdated -> {
                         setViewState(
                             headline = if (result.foundLogin.username.isEmpty()) {
                                 context?.getString(
-                                    R.string.mozac_feature_prompt_login_add_username_headline
+                                    R.string.mozac_feature_prompt_login_add_username_headline,
                                 )
                             } else {
                                 context?.getString(R.string.mozac_feature_prompt_login_update_headline)
                             },
                             negativeText = context?.getString(R.string.mozac_feature_prompt_dont_update),
                             confirmText =
-                            context?.getString(R.string.mozac_feature_prompt_update_confirmation)
+                            context?.getString(R.string.mozac_feature_prompt_update_confirmation),
                         )
                     }
                     else -> {
@@ -350,7 +371,7 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
         negativeText: String? = null,
         confirmText: String? = null,
         loginValid: Boolean? = null,
-        passwordErrorText: String? = null
+        passwordErrorText: String? = null,
     ) {
         if (headline != null) {
             view?.findViewById<AppCompatTextView>(R.id.save_message)?.text = headline
@@ -395,9 +416,8 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
             shouldDismissOnLoad: Boolean,
             hint: Int,
             entry: LoginEntry,
-            icon: Bitmap? = null
+            icon: Bitmap? = null,
         ): SaveLoginDialogFragment {
-
             val fragment = SaveLoginDialogFragment()
             val arguments = fragment.arguments ?: Bundle()
 

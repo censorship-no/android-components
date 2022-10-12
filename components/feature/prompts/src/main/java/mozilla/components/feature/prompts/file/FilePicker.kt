@@ -26,6 +26,7 @@ import mozilla.components.support.base.feature.PermissionsFeature
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.content.isPermissionGranted
 import mozilla.components.support.ktx.android.net.isUnderPrivateAppDirectory
+import mozilla.components.support.utils.ext.getParcelableExtraCompat
 
 /**
  * The image capture intent doesn't return the URI where the image is saved,
@@ -47,7 +48,7 @@ internal class FilePicker(
     private val container: PromptContainer,
     private val store: BrowserStore,
     private var sessionId: String? = null,
-    override val onNeedToRequestPermissions: OnNeedToRequestPermissions
+    override val onNeedToRequestPermissions: OnNeedToRequestPermissions,
 ) : PermissionsFeature {
 
     private val logger = Logger("FilePicker")
@@ -71,7 +72,11 @@ internal class FilePicker(
             val hasPermission = container.context.isPermissionGranted(type.permission)
             // The captureMode attribute can be used if the accepted types are exactly for
             // image/*, video/*, or audio/*.
-            if (hasPermission && type.shouldCapture(promptRequest.mimeTypes, promptRequest.captureMode)) {
+            if (hasPermission && type.shouldCapture(
+                    promptRequest.mimeTypes,
+                    promptRequest.captureMode,
+                )
+            ) {
                 type.buildIntent(container.context, promptRequest)?.also {
                     saveCaptureUriIfPresent(it)
                     container.startActivityForResult(it, FILE_PICKER_ACTIVITY_REQUEST_CODE)
@@ -134,8 +139,7 @@ internal class FilePicker(
     }
 
     private fun getActivePromptRequest(): PromptRequest? =
-        store.state.findCustomTabOrSelectedTab(sessionId)?.content?.promptRequests?.lastOrNull {
-            prompt ->
+        store.state.findCustomTabOrSelectedTab(sessionId)?.content?.promptRequests?.lastOrNull { prompt ->
             prompt is File
         }
 
@@ -212,7 +216,7 @@ internal class FilePicker(
     }
 
     private fun saveCaptureUriIfPresent(intent: Intent) =
-        intent.getParcelableExtra<Uri>(EXTRA_OUTPUT)?.let { captureUri = it }
+        intent.getParcelableExtraCompat(EXTRA_OUTPUT, Uri::class.java)?.let { captureUri = it }
 
     @VisibleForTesting
     fun askAndroidPermissionsForRequest(permissions: List<String>, request: File) {

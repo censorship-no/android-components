@@ -39,14 +39,15 @@ import mozilla.components.support.base.log.Log
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.R
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
+import mozilla.components.support.utils.ext.getPackageInfoCompat
 import java.io.File
 
 /**
  * The (visible) version name of the application, as specified by the <manifest> tag's versionName
  * attribute. E.g. "2.0".
  */
-val Context.appVersionName: String?
-    get() = packageManager.getPackageInfo(packageName, 0).versionName
+val Context.appVersionName: String
+    get() = packageManager.getPackageInfoCompat(packageName, 0).versionName
 
 /**
  * Returns the name (label) of the application or the package name as a fallback.
@@ -71,6 +72,7 @@ fun Context.isOSOnLowMemory(): Boolean {
 fun Context.isPermissionGranted(permission: Iterable<String>): Boolean {
     return permission.all { checkSelfPermission(this, it) == PERMISSION_GRANTED }
 }
+
 fun Context.isPermissionGranted(vararg permission: String): Boolean {
     return isPermissionGranted(permission.asIterable())
 }
@@ -97,7 +99,10 @@ fun Context.hasCamera(): Boolean {
  * @param subject of the intent [EXTRA_TEXT]
  * @return true it is able to share false otherwise.
  */
-fun Context.share(text: String, subject: String = getString(R.string.mozac_support_ktx_share_dialog_title)): Boolean {
+fun Context.share(
+    text: String,
+    subject: String = getString(R.string.mozac_support_ktx_share_dialog_title),
+): Boolean {
     return try {
         val intent = Intent(ACTION_SEND).apply {
             type = "text/plain"
@@ -106,14 +111,21 @@ fun Context.share(text: String, subject: String = getString(R.string.mozac_suppo
             flags = FLAG_ACTIVITY_NEW_TASK
         }
 
-        val shareIntent = Intent.createChooser(intent, getString(R.string.mozac_support_ktx_menu_share_with)).apply {
-            flags = FLAG_ACTIVITY_NEW_TASK
-        }
+        val shareIntent =
+            Intent.createChooser(intent, getString(R.string.mozac_support_ktx_menu_share_with))
+                .apply {
+                    flags = FLAG_ACTIVITY_NEW_TASK
+                }
 
         startActivity(shareIntent)
         true
     } catch (e: ActivityNotFoundException) {
-        Log.log(Log.Priority.WARN, message = "No activity to share to found", throwable = e, tag = "Reference-Browser")
+        Log.log(
+            Log.Priority.WARN,
+            message = "No activity to share to found",
+            throwable = e,
+            tag = "Reference-Browser",
+        )
         false
     }
 }
@@ -129,12 +141,12 @@ fun Context.shareMedia(
     filePath: String,
     contentType: String?,
     subject: String? = null,
-    message: String? = null
+    message: String? = null,
 ): Boolean {
     val contentUri = FileProvider.getUriForFile(
         this,
         "${applicationContext.packageName}.feature.downloads.fileprovider", // (packageName + FILE_PROVIDER_EXTENSION)
-        File(filePath)
+        File(filePath),
     )
 
     val intent = Intent().apply {
@@ -154,15 +166,21 @@ fun Context.shareMedia(
         }
     }
 
-    val shareIntent = Intent.createChooser(intent, getString(R.string.mozac_support_ktx_menu_share_with)).apply {
-        flags = FLAG_ACTIVITY_NEW_TASK or FLAG_GRANT_READ_URI_PERMISSION
-    }
+    val shareIntent =
+        Intent.createChooser(intent, getString(R.string.mozac_support_ktx_menu_share_with)).apply {
+            flags = FLAG_ACTIVITY_NEW_TASK or FLAG_GRANT_READ_URI_PERMISSION
+        }
 
     return try {
         startActivity(shareIntent)
         true
     } catch (error: ActivityNotFoundException) {
-        Log.log(Log.Priority.WARN, message = "No activity to share to found", throwable = error, tag = "shareMedia")
+        Log.log(
+            Log.Priority.WARN,
+            message = "No activity to share to found",
+            throwable = error,
+            tag = "shareMedia",
+        )
 
         false
     }
@@ -177,7 +195,7 @@ fun Context.shareMedia(
  */
 fun Context.email(
     address: String,
-    subject: String = getString(R.string.mozac_support_ktx_share_dialog_title)
+    subject: String = getString(R.string.mozac_support_ktx_share_dialog_title),
 ): Boolean {
     return try {
         val intent = Intent(ACTION_SENDTO, Uri.parse("mailto:$address"))
@@ -185,7 +203,7 @@ fun Context.email(
 
         val emailIntent = Intent.createChooser(
             intent,
-            getString(R.string.mozac_support_ktx_menu_email_with)
+            getString(R.string.mozac_support_ktx_menu_email_with),
         ).apply {
             flags = FLAG_ACTIVITY_NEW_TASK
         }
@@ -208,7 +226,7 @@ fun Context.email(
  */
 fun Context.call(
     phoneNumber: String,
-    subject: String = getString(R.string.mozac_support_ktx_share_dialog_title)
+    subject: String = getString(R.string.mozac_support_ktx_share_dialog_title),
 ): Boolean {
     return try {
         val intent = Intent(ACTION_DIAL, Uri.parse("tel:$phoneNumber"))
@@ -216,7 +234,7 @@ fun Context.call(
 
         val callIntent = Intent.createChooser(
             intent,
-            getString(R.string.mozac_support_ktx_menu_call_with)
+            getString(R.string.mozac_support_ktx_menu_call_with),
         ).apply {
             flags = FLAG_ACTIVITY_NEW_TASK
         }
@@ -236,7 +254,7 @@ fun Context.call(
  * @return true it is able to share email false otherwise.
  */
 fun Context.addContact(
-    address: String
+    address: String,
 ): Boolean {
     return try {
         val intent = Intent(ContactsContract.Intents.Insert.ACTION).apply {
@@ -244,7 +262,7 @@ fun Context.addContact(
             putExtra(ContactsContract.Intents.Insert.EMAIL, address)
             putExtra(
                 ContactsContract.Intents.Insert.EMAIL_TYPE,
-                ContactsContract.CommonDataKinds.Email.TYPE_WORK
+                ContactsContract.CommonDataKinds.Email.TYPE_WORK,
             )
             addFlags(FLAG_ACTIVITY_NEW_TASK)
         }

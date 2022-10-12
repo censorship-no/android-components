@@ -18,6 +18,8 @@ import androidx.annotation.VisibleForTesting
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.android.content.pm.isPackageInstalled
 import mozilla.components.support.ktx.android.net.isHttpOrHttps
+import mozilla.components.support.utils.ext.queryIntentActivitiesCompat
+import mozilla.components.support.utils.ext.resolveActivityCompat
 import java.lang.Exception
 import java.lang.NullPointerException
 import java.lang.NumberFormatException
@@ -49,7 +51,7 @@ internal const val APP_LINKS_CACHE_INTERVAL = 30 * 1000L // 30 seconds
 class AppLinksUseCases(
     private val context: Context,
     private val launchInApp: () -> Boolean = { false },
-    private val alwaysDeniedSchemes: Set<String> = ALWAYS_DENY_SCHEMES
+    private val alwaysDeniedSchemes: Set<String> = ALWAYS_DENY_SCHEMES,
 ) {
     @Suppress(
         "QueryPermissionsNeeded", // We expect our browsers to have the QUERY_ALL_PACKAGES permission
@@ -59,7 +61,7 @@ class AppLinksUseCases(
     internal fun findActivities(intent: Intent): List<ResolveInfo> {
         return try {
             context.packageManager
-                .queryIntentActivities(intent, PackageManager.GET_RESOLVED_FILTER)
+                .queryIntentActivitiesCompat(intent, PackageManager.GET_RESOLVED_FILTER)
         } catch (e: RuntimeException) {
             Logger("AppLinksUseCases").error("failed to query activities", e)
             emptyList()
@@ -67,7 +69,10 @@ class AppLinksUseCases(
     }
 
     private fun findDefaultActivity(intent: Intent): ResolveInfo? {
-        return context.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+        return context.packageManager.resolveActivityCompat(
+            intent,
+            PackageManager.MATCH_DEFAULT_ONLY,
+        )
     }
 
     /**
@@ -90,7 +95,8 @@ class AppLinksUseCases(
         private val includeInstallAppFallback: Boolean = false,
     ) {
         operator fun invoke(url: String): AppLinkRedirect {
-            val urlHash = (url + includeHttpAppLinks + ignoreDefaultBrowser + includeHttpAppLinks).hashCode()
+            val urlHash =
+                (url + includeHttpAppLinks + ignoreDefaultBrowser + includeHttpAppLinks).hashCode()
             val currentTimeStamp = SystemClock.elapsedRealtime()
             // since redirectCache is mutable, get the latest
             val cache = redirectCache
@@ -123,7 +129,8 @@ class AppLinksUseCases(
             }
 
             // no need to check marketplace intent since it is only set if a package is set in the intent
-            val appLinkRedirect = AppLinkRedirect(appIntent, fallbackUrl, redirectData.marketplaceIntent)
+            val appLinkRedirect =
+                AppLinkRedirect(appIntent, fallbackUrl, redirectData.marketplaceIntent)
             redirectCache = AppLinkRedirectCache(currentTimeStamp, urlHash, appLinkRedirect)
             return appLinkRedirect
         }
@@ -148,7 +155,8 @@ class AppLinksUseCases(
             }
 
             if (marketplaceIntent != null) {
-                marketplaceIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                marketplaceIntent.flags =
+                    Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             }
 
             val appIntent = when {
@@ -177,7 +185,8 @@ class AppLinksUseCases(
             // only target intent for specific app if only one non browser app is found
             if (resolveInfoList?.count() == 1) {
                 resolveInfo?.let {
-                    appIntent.component = ComponentName(it.activityInfo.packageName, it.activityInfo.name)
+                    appIntent.component =
+                        ComponentName(it.activityInfo.packageName, it.activityInfo.name)
                 }
             }
 
@@ -271,6 +280,7 @@ class AppLinksUseCases(
             includeInstallAppFallback = true,
         )
     }
+
     private data class RedirectData(
         val appIntent: Intent? = null,
         val fallbackIntent: Intent? = null,
@@ -291,10 +301,22 @@ class AppLinksUseCases(
 
         // list of scheme from https://searchfox.org/mozilla-central/source/netwerk/build/components.conf
         internal val ENGINE_SUPPORTED_SCHEMES: Set<String> = setOf(
-            "about", "data", "file", "ftp", "http",
-            "https", "moz-extension", "moz-safe-about", "resource", "view-source", "ws", "wss", "blob",
+            "about",
+            "data",
+            "file",
+            "ftp",
+            "http",
+            "https",
+            "moz-extension",
+            "moz-safe-about",
+            "resource",
+            "view-source",
+            "ws",
+            "wss",
+            "blob",
         )
 
-        internal val ALWAYS_DENY_SCHEMES: Set<String> = setOf("jar", "file", "javascript", "data", "about")
+        internal val ALWAYS_DENY_SCHEMES: Set<String> =
+            setOf("jar", "file", "javascript", "data", "about")
     }
 }

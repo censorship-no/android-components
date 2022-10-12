@@ -25,6 +25,7 @@ import mozilla.components.feature.autofill.facts.emitAutofillLock
 import mozilla.components.feature.autofill.handler.FillRequestHandler
 import mozilla.components.feature.autofill.handler.MAX_LOGINS
 import mozilla.components.feature.autofill.structure.ParsedStructure
+import mozilla.components.support.utils.ext.getParcelableExtraCompat
 
 /**
  * Activity responsible for unlocking the autofill service by asking the user to verify with a
@@ -53,7 +54,8 @@ abstract class AbstractAutofillUnlockActivity : FragmentActivity() {
         val maxSuggestionCount = intent.getIntExtra(EXTRA_MAX_SUGGESTION_COUNT, MAX_LOGINS)
         // While the user is asked to authenticate, we already try to build the fill response asynchronously.
         fillResponse = lifecycleScope.async(Dispatchers.IO) {
-            val builder = fillHandler.handle(parsedStructure, forceUnlock = true, maxSuggestionCount)
+            val builder =
+                fillHandler.handle(parsedStructure, forceUnlock = true, maxSuggestionCount)
             val result = builder.build(this@AbstractAutofillUnlockActivity, configuration, imeSpec)
             result
         }
@@ -90,7 +92,12 @@ abstract class AbstractAutofillUnlockActivity : FragmentActivity() {
             val replyIntent = Intent().apply {
                 // At this point it should be safe to block since the fill response should be ready once
                 // the user has authenticated.
-                runBlocking { putExtra(AutofillManager.EXTRA_AUTHENTICATION_RESULT, fillResponse?.await()) }
+                runBlocking {
+                    putExtra(
+                        AutofillManager.EXTRA_AUTHENTICATION_RESULT,
+                        fillResponse?.await(),
+                    )
+                }
             }
 
             emitAutofillLock(unlocked = true)
@@ -113,9 +120,12 @@ abstract class AbstractAutofillUnlockActivity : FragmentActivity() {
 }
 
 internal fun Intent.getImeSpec(): InlinePresentationSpec? {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        return getParcelableExtra(AbstractAutofillUnlockActivity.EXTRA_IME_SPEC)
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        getParcelableExtraCompat(
+            AbstractAutofillUnlockActivity.EXTRA_IME_SPEC,
+            InlinePresentationSpec::class.java,
+        )
     } else {
-        return null
+        null
     }
 }

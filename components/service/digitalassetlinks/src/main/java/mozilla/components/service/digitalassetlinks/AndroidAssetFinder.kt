@@ -11,6 +11,7 @@ import android.content.pm.Signature
 import android.os.Build
 import android.os.Build.VERSION.SDK_INT
 import androidx.annotation.VisibleForTesting
+import mozilla.components.support.utils.ext.getPackageInfoCompat
 import java.io.ByteArrayInputStream
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
@@ -33,7 +34,7 @@ class AndroidAssetFinder {
      */
     fun getAndroidAppAsset(
         packageName: String,
-        packageManager: PackageManager
+        packageManager: PackageManager,
     ): Sequence<AssetDescriptor.Android> {
         return packageManager.getSignatures(packageName).asSequence()
             .mapNotNull { signature -> getCertificateSHA256Fingerprint(signature) }
@@ -50,7 +51,8 @@ class AndroidAssetFinder {
     internal fun getCertificateSHA256Fingerprint(signature: Signature): String? {
         val input = ByteArrayInputStream(signature.toByteArray())
         return try {
-            val certificate = CertificateFactory.getInstance("X509").generateCertificate(input) as X509Certificate
+            val certificate =
+                CertificateFactory.getInstance("X509").generateCertificate(input) as X509Certificate
             byteArrayToHexString(MessageDigest.getInstance("SHA256").digest(certificate.encoded))
         } catch (e: CertificateEncodingException) {
             // Certificate type X509 encoding failed
@@ -89,7 +91,7 @@ class AndroidAssetFinder {
     private fun PackageManager.getPackageSignatureInfo(packageName: String): PackageInfo? {
         return try {
             if (SDK_INT >= Build.VERSION_CODES.P) {
-                getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
+                getPackageInfoCompat(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
             } else {
                 @Suppress("Deprecation")
                 getPackageInfo(packageName, PackageManager.GET_SIGNATURES)

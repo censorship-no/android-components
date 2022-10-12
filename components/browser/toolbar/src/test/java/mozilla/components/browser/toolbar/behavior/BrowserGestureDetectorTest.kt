@@ -13,6 +13,7 @@ import android.view.MotionEvent.ACTION_POINTER_DOWN
 import android.view.MotionEvent.ACTION_UP
 import android.view.ScaleGestureDetector
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
@@ -46,7 +47,7 @@ class BrowserGestureDetectorTest {
         onHorizontalScroll = horizontalScrollListener,
         onScaleBegin = scaleBeginListener,
         onScale = scaleInProgressListener,
-        onScaleEnd = scaleEndListener
+        onScaleEnd = scaleEndListener,
     )
 
     @Test
@@ -93,7 +94,7 @@ class BrowserGestureDetectorTest {
         // Neither the scale detector, nor the scroll detector should be interested
         // in a one of a time ACTION_CANCEL MotionEvent
         val wasEventHandled = detector.handleTouchEvent(
-            TestUtils.getMotionEvent(ACTION_CANCEL, previousEvent = unhandledEvent)
+            TestUtils.getMotionEvent(ACTION_CANCEL, previousEvent = unhandledEvent),
         )
 
         assertFalse(wasEventHandled)
@@ -104,7 +105,8 @@ class BrowserGestureDetectorTest {
         val detector = spy(BrowserGestureDetector(testContext, mock()))
         val downEvent = TestUtils.getMotionEvent(ACTION_DOWN)
         val moveEvent = TestUtils.getMotionEvent(ACTION_MOVE, 0f, 0f, previousEvent = downEvent)
-        val moveEvent2 = TestUtils.getMotionEvent(ACTION_MOVE, 100f, 100f, previousEvent = moveEvent)
+        val moveEvent2 =
+            TestUtils.getMotionEvent(ACTION_MOVE, 100f, 100f, previousEvent = moveEvent)
 
         detector.handleTouchEvent(downEvent)
         detector.handleTouchEvent(moveEvent)
@@ -118,7 +120,8 @@ class BrowserGestureDetectorTest {
         val detector = spy(BrowserGestureDetector(testContext, gesturesListener))
         val downEvent = TestUtils.getMotionEvent(ACTION_DOWN)
         val moveEvent = TestUtils.getMotionEvent(ACTION_MOVE, 0f, 0f, previousEvent = downEvent)
-        val moveEvent2 = TestUtils.getMotionEvent(ACTION_MOVE, 100f, 200f, previousEvent = moveEvent)
+        val moveEvent2 =
+            TestUtils.getMotionEvent(ACTION_MOVE, 100f, 200f, previousEvent = moveEvent)
 
         detector.handleTouchEvent(downEvent)
         detector.handleTouchEvent(moveEvent)
@@ -139,7 +142,8 @@ class BrowserGestureDetectorTest {
         val detector = spy(BrowserGestureDetector(testContext, gesturesListener))
         val downEvent = TestUtils.getMotionEvent(ACTION_DOWN)
         val moveEvent = TestUtils.getMotionEvent(ACTION_MOVE, 0f, 0f, previousEvent = downEvent)
-        val moveEvent2 = TestUtils.getMotionEvent(ACTION_MOVE, 100f, 100f, previousEvent = moveEvent)
+        val moveEvent2 =
+            TestUtils.getMotionEvent(ACTION_MOVE, 100f, 100f, previousEvent = moveEvent)
 
         detector.handleTouchEvent(downEvent)
         detector.handleTouchEvent(moveEvent)
@@ -160,7 +164,8 @@ class BrowserGestureDetectorTest {
         val detector = spy(BrowserGestureDetector(testContext, gesturesListener))
         val downEvent = TestUtils.getMotionEvent(ACTION_DOWN)
         val moveEvent = TestUtils.getMotionEvent(ACTION_MOVE, 0f, 0f, previousEvent = downEvent)
-        val moveEvent2 = TestUtils.getMotionEvent(ACTION_MOVE, 101f, 100f, previousEvent = moveEvent)
+        val moveEvent2 =
+            TestUtils.getMotionEvent(ACTION_MOVE, 101f, 100f, previousEvent = moveEvent)
 
         detector.handleTouchEvent(downEvent)
         detector.handleTouchEvent(moveEvent)
@@ -204,20 +209,24 @@ class BrowserGestureDetectorTest {
 
     @Test
     fun `Detector should not crash when the scroll detector receives a null first MotionEvent`() {
-        val detector = BrowserGestureDetector(testContext, gesturesListener)
+        val crashReporting: CrashReporting = mock()
+        val detector = BrowserGestureDetector(testContext, gesturesListener, crashReporting)
         // We need a previous event for ACTION_MOVE.
         // Don't use ACTION_DOWN (first pointer on the screen) but ACTION_POINTER_DOWN (other later pointer)
         // just to artificially be able to recreate the bug from 8552. This should not happen IRL.
         val downEvent = TestUtils.getMotionEvent(ACTION_POINTER_DOWN)
         val moveEvent = TestUtils.getMotionEvent(ACTION_MOVE, 0f, 0f, previousEvent = downEvent)
-        val moveEvent2 = TestUtils.getMotionEvent(ACTION_MOVE, 100f, 200f, previousEvent = moveEvent)
+        val moveEvent2 =
+            TestUtils.getMotionEvent(ACTION_MOVE, 100f, 200f, previousEvent = moveEvent)
 
         detector.handleTouchEvent(downEvent)
         detector.handleTouchEvent(moveEvent)
         detector.handleTouchEvent(moveEvent2)
 
-        verify(scrollListener).invoke(-100f, -200f)
+        verify(scrollListener, never()).invoke(-100f, -200f)
         // We don't crash but neither can identify vertical / horizontal scrolls.
+
+        verify(crashReporting).submitCaughtException(any())
         verify(verticalScrollListener, never()).invoke(anyFloat())
         verify(horizontalScrollListener, never()).invoke(anyFloat())
         verify(scaleBeginListener, never()).invoke(anyFloat())

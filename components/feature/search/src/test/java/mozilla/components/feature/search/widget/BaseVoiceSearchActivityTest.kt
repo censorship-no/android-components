@@ -16,6 +16,7 @@ import androidx.activity.result.ActivityResult
 import mozilla.components.feature.search.widget.BaseVoiceSearchActivity.Companion.PREVIOUS_INTENT
 import mozilla.components.feature.search.widget.BaseVoiceSearchActivity.Companion.SPEECH_PROCESSING
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.utils.ext.getParcelableCompat
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -41,7 +42,8 @@ class BaseVoiceSearchActivityTest {
         val intent = Intent()
         intent.putExtra(SPEECH_PROCESSING, true)
 
-        controller = Robolectric.buildActivity(BaseVoiceSearchActivityExtendedForTests::class.java, intent)
+        controller =
+            Robolectric.buildActivity(BaseVoiceSearchActivityExtendedForTests::class.java, intent)
         activity = controller.get()
         shadow = shadowOf(activity)
     }
@@ -52,7 +54,7 @@ class BaseVoiceSearchActivityTest {
         shadowPackageManager.addActivityIfNotPresent(component)
         shadowPackageManager.addIntentFilterForActivity(
             component,
-            IntentFilter(ACTION_RECOGNIZE_SPEECH).apply { addCategory(Intent.CATEGORY_DEFAULT) }
+            IntentFilter(ACTION_RECOGNIZE_SPEECH).apply { addCategory(Intent.CATEGORY_DEFAULT) },
         )
     }
 
@@ -72,7 +74,8 @@ class BaseVoiceSearchActivityTest {
         val intent = Intent()
         intent.putExtra(SPEECH_PROCESSING, false)
 
-        val controller = Robolectric.buildActivity(BaseVoiceSearchActivityExtendedForTests::class.java, intent)
+        val controller =
+            Robolectric.buildActivity(BaseVoiceSearchActivityExtendedForTests::class.java, intent)
         val activity = controller.get()
 
         controller.create()
@@ -83,7 +86,8 @@ class BaseVoiceSearchActivityTest {
     @Test
     fun `process null intent`() {
         allowVoiceIntentToResolveActivity()
-        val controller = Robolectric.buildActivity(BaseVoiceSearchActivityExtendedForTests::class.java, null)
+        val controller =
+            Robolectric.buildActivity(BaseVoiceSearchActivityExtendedForTests::class.java, null)
         val activity = controller.get()
 
         controller.create()
@@ -105,7 +109,10 @@ class BaseVoiceSearchActivityTest {
         controller.create(savedInstanceState)
         controller.saveInstanceState(outState)
 
-        assertEquals(previousIntent, outState.getParcelable<Intent>(PREVIOUS_INTENT))
+        assertEquals(
+            previousIntent,
+            outState.getParcelableCompat(PREVIOUS_INTENT, Intent::class.java),
+        )
     }
 
     @Test

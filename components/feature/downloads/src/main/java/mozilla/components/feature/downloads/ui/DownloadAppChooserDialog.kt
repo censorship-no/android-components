@@ -17,6 +17,7 @@ import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.feature.downloads.R
+import mozilla.components.support.utils.ext.getParcelableArrayListCompat
 import java.util.ArrayList
 
 /**
@@ -26,12 +27,15 @@ internal class DownloadAppChooserDialog : AppCompatDialogFragment() {
     private val safeArguments get() = requireNotNull(arguments)
     internal val appsList: ArrayList<DownloaderApp>
         get() =
-            safeArguments.getParcelableArrayList<DownloaderApp>(KEY_APP_LIST) ?: arrayListOf()
+            safeArguments.getParcelableArrayListCompat(KEY_APP_LIST, DownloaderApp::class.java)
+                ?: arrayListOf()
 
-    internal val dialogGravity: Int get() =
-        safeArguments.getInt(KEY_DIALOG_GRAVITY, DEFAULT_VALUE)
-    internal val dialogShouldWidthMatchParent: Boolean get() =
-        safeArguments.getBoolean(KEY_DIALOG_WIDTH_MATCH_PARENT)
+    internal val dialogGravity: Int
+        get() =
+            safeArguments.getInt(KEY_DIALOG_GRAVITY, DEFAULT_VALUE)
+    internal val dialogShouldWidthMatchParent: Boolean
+        get() =
+            safeArguments.getBoolean(KEY_DIALOG_WIDTH_MATCH_PARENT)
 
     /**
      * Indicates the user has selected an application to perform the download
@@ -66,7 +70,7 @@ internal class DownloadAppChooserDialog : AppCompatDialogFragment() {
         val rootView = LayoutInflater.from(requireContext()).inflate(
             R.layout.mozac_downloader_chooser_prompt,
             null,
-            false
+            false,
         )
 
         val recyclerView = rootView.findViewById<RecyclerView>(R.id.apps_list)
@@ -97,8 +101,8 @@ internal class DownloadAppChooserDialog : AppCompatDialogFragment() {
                 rootView,
                 LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.MATCH_PARENT
-                )
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                ),
             )
         }
     }
@@ -109,7 +113,7 @@ internal class DownloadAppChooserDialog : AppCompatDialogFragment() {
          */
         fun newInstance(
             gravity: Int? = DEFAULT_VALUE,
-            dialogShouldWidthMatchParent: Boolean? = false
+            dialogShouldWidthMatchParent: Boolean? = false,
         ): DownloadAppChooserDialog {
             val fragment = DownloadAppChooserDialog()
             val arguments = fragment.arguments ?: Bundle()

@@ -78,14 +78,14 @@ class ContextTest {
 
         assertEquals(
             testContext.isPermissionGranted(WRITE_EXTERNAL_STORAGE),
-            testContext.checkSelfPermission(WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED
+            testContext.checkSelfPermission(WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED,
         )
 
         application.grantPermissions(WRITE_EXTERNAL_STORAGE)
 
         assertEquals(
             testContext.isPermissionGranted(WRITE_EXTERNAL_STORAGE),
-            testContext.checkSelfPermission(WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED
+            testContext.checkSelfPermission(WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED,
         )
     }
 
@@ -114,16 +114,19 @@ class ContextTest {
         assertTrue(result)
         // verify all the properties we set for the share Intent
         val chooserIntent = argCaptor.value
-        val chooserTitle: String = chooserIntent.extras!![EXTRA_TITLE] as String
-        val shareIntent: Intent = chooserIntent.extras!![EXTRA_INTENT] as Intent
+        val chooserTitle: String = chooserIntent.extras!!.getString(EXTRA_TITLE) as String
+
+        @Suppress("DEPRECATION")
+        val shareIntent: Intent = chooserIntent.extras!!.get(EXTRA_INTENT) as Intent
 
         assertTrue(chooserIntent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
         assertTrue(chooserIntent.flags and Intent.FLAG_ACTIVITY_NEW_TASK != 0)
         assertEquals(context.getString(R.string.mozac_support_ktx_menu_share_with), chooserTitle)
         assertEquals(ACTION_SEND, shareIntent.action)
+        @Suppress("DEPRECATION")
         assertEquals(ShadowFileProvider.FAKE_URI_RESULT, shareIntent.extras!![EXTRA_STREAM])
-        assertEquals("subject", shareIntent.extras!![EXTRA_SUBJECT])
-        assertEquals("message", shareIntent.extras!![EXTRA_TEXT])
+        assertEquals("subject", shareIntent.extras!!.getString(EXTRA_SUBJECT))
+        assertEquals("message", shareIntent.extras!!.getString(EXTRA_TEXT))
         assertTrue(shareIntent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
         assertTrue(shareIntent.flags and Intent.FLAG_ACTIVITY_NEW_DOCUMENT != 0)
     }
@@ -132,10 +135,12 @@ class ContextTest {
     @Test
     @Config(shadows = [ShadowFileProvider::class])
     fun `shareMedia returns false if the chooser could not be shown`() {
-        val context = spy(object : FakeContext() {
-            override fun startActivity(intent: Intent?) = throw ActivityNotFoundException()
-            override fun getApplicationContext() = testContext
-        })
+        val context = spy(
+            object : FakeContext() {
+                override fun startActivity(intent: Intent?) = throw ActivityNotFoundException()
+                override fun getApplicationContext() = testContext
+            },
+        )
         doReturn(testContext.resources).`when`(context).resources
 
         val result = context.shareMedia("filePath", "*/*", "subject", "message")
@@ -161,7 +166,10 @@ class ContextTest {
     }
 
     @Test
-    @Config(shadows = [ShadowFileProvider::class], sdk = [Build.VERSION_CODES.LOLLIPOP, Build.VERSION_CODES.P])
+    @Config(
+        shadows = [ShadowFileProvider::class],
+        sdk = [Build.VERSION_CODES.LOLLIPOP, Build.VERSION_CODES.P],
+    )
     fun `shareMedia will not show a thumbnail prior to Android 10`() {
         val context = spy(testContext)
         val argCaptor = argumentCaptor<Intent>()
@@ -240,8 +248,12 @@ class ContextTest {
         val context = Robolectric.buildActivity(Activity::class.java).get()
         assertFalse(context.hasCamera())
 
-        val cameraManager: CameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
-        shadowOf(cameraManager).addCamera("camera0", ShadowCameraCharacteristics.newCameraCharacteristics())
+        val cameraManager: CameraManager =
+            context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        shadowOf(cameraManager).addCamera(
+            "camera0",
+            ShadowCameraCharacteristics.newCameraCharacteristics(),
+        )
         assertTrue(context.hasCamera())
     }
 
@@ -276,6 +288,6 @@ object ShadowFileProvider {
     fun getUriForFile(
         context: Context?,
         authority: String?,
-        file: File
+        file: File,
     ) = FAKE_URI_RESULT
 }

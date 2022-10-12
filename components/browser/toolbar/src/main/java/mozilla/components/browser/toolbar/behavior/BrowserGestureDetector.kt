@@ -9,7 +9,15 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import androidx.annotation.VisibleForTesting
+import mozilla.components.concept.base.crash.CrashReporting
 import kotlin.math.abs
+
+/**
+ * Wraps exceptions that are caught by [BrowserGestureDetector].
+ * Instances of this class are submitted via [CrashReporting]. This wrapping helps easily identify
+ * exceptions related to [BrowserGestureDetector].
+ */
+internal class BrowserGestureDetectorException(e: Throwable) : Throwable(e)
 
 /**
  * Custom [MotionEvent] gestures detector with scroll / zoom callbacks.
@@ -23,7 +31,8 @@ import kotlin.math.abs
  */
 internal class BrowserGestureDetector(
     applicationContext: Context,
-    listener: GesturesListener
+    listener: GesturesListener,
+    private val crashReporting: CrashReporting? = null,
 ) {
     @VisibleForTesting
     @Suppress("MaxLineLength")
@@ -44,7 +53,7 @@ internal class BrowserGestureDetector(
                     }
                 }
             }
-        }
+        },
     )
 
     @VisibleForTesting
@@ -53,8 +62,8 @@ internal class BrowserGestureDetector(
         CustomScaleDetectorListener(
             listener.onScaleBegin ?: {},
             listener.onScale ?: {},
-            listener.onScaleEnd ?: {}
-        )
+            listener.onScaleEnd ?: {},
+        ),
     )
 
     /**
@@ -86,8 +95,13 @@ internal class BrowserGestureDetector(
             eventAction == MotionEvent.ACTION_UP ||
             eventAction == MotionEvent.ACTION_CANCEL
         ) {
-
-            gestureDetector.onTouchEvent(event)
+            @Suppress("TooGenericExceptionCaught")
+            try {
+                gestureDetector.onTouchEvent(event)
+            } catch (e: Exception) {
+                crashReporting?.submitCaughtException(BrowserGestureDetectorException(e))
+                false
+            }
         } else {
             false
         }
@@ -135,22 +149,22 @@ internal class BrowserGestureDetector(
          * Responds to the end of a scale gesture.
          * Reported by existing pointers going up.
          */
-        val onScaleEnd: ((scaleFactor: Float) -> Unit)? = {}
+        val onScaleEnd: ((scaleFactor: Float) -> Unit)? = {},
     )
 
     private class CustomScrollDetectorListener(
         val onScrolling: (
-            previousEvent: MotionEvent?,
+            previousEvent: MotionEvent,
             currentEvent: MotionEvent,
             distanceX: Float,
-            distanceY: Float
-        ) -> Unit
+            distanceY: Float,
+        ) -> Unit,
     ) : GestureDetector.SimpleOnGestureListener() {
         override fun onScroll(
-            e1: MotionEvent?,
+            e1: MotionEvent,
             e2: MotionEvent,
             distanceX: Float,
-            distanceY: Float
+            distanceY: Float,
         ): Boolean {
             onScrolling(e1, e2, distanceX, distanceY)
             return true
@@ -160,7 +174,7 @@ internal class BrowserGestureDetector(
     private class CustomScaleDetectorListener(
         val onScaleBegin: (scaleFactor: Float) -> Unit = {},
         val onScale: (scaleFactor: Float) -> Unit = {},
-        val onScaleEnd: (scaleFactor: Float) -> Unit = {}
+        val onScaleEnd: (scaleFactor: Float) -> Unit = {},
     ) : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
             onScaleBegin(detector.scaleFactor)

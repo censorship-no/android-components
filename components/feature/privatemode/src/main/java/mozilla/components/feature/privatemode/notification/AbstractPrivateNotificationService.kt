@@ -32,6 +32,7 @@ import mozilla.components.support.ktx.android.notification.ChannelData
 import mozilla.components.support.ktx.android.notification.ensureNotificationChannelExists
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifChanged
 import mozilla.components.support.utils.PendingIntentUtils
+import mozilla.components.support.utils.ext.stopForegroundCompat
 import java.util.Locale
 
 /**
@@ -91,7 +92,7 @@ abstract class AbstractPrivateNotificationService : Service() {
                     enableVibration(false)
                     setShowBadge(false)
                 }
-            }
+            },
         )
     }
 
@@ -150,8 +151,13 @@ abstract class AbstractPrivateNotificationService : Service() {
             .setContentIntent(
                 Intent(ACTION_ERASE).let {
                     it.setClass(this, this::class.java)
-                    PendingIntent.getService(this, 0, it, PendingIntentUtils.defaultFlags or FLAG_ONE_SHOT)
-                }
+                    PendingIntent.getService(
+                        this,
+                        0,
+                        it,
+                        PendingIntentUtils.defaultFlags or FLAG_ONE_SHOT,
+                    )
+                },
             )
             .apply { buildNotification() }
             .build()
@@ -188,7 +194,7 @@ abstract class AbstractPrivateNotificationService : Service() {
     }
 
     private fun stopService() {
-        stopForeground(true)
+        stopForegroundCompat(true)
         stopSelf()
     }
 
@@ -200,19 +206,19 @@ abstract class AbstractPrivateNotificationService : Service() {
         val NOTIFICATION_CHANNEL = ChannelData(
             id = "browsing-session",
             name = R.string.mozac_feature_privatemode_notification_channel_name,
-            importance = IMPORTANCE_LOW
+            importance = IMPORTANCE_LOW,
         )
 
         // List of Intent actions that will get ignored when they are in the root intent that gets
         // passed to onTaskRemoved().
         private val ignoreTaskActions = listOf(
-            "mozilla.components.feature.pwa.VIEW_PWA"
+            "mozilla.components.feature.pwa.VIEW_PWA",
         )
 
         // List of Intent components classes that will get ignored when they are in the root intent
         // that gets passed to onTaskRemoved().
         private val ignoreTaskComponentClasses = listOf(
-            "org.mozilla.fenix.customtabs.ExternalAppBrowserActivity"
+            "org.mozilla.fenix.customtabs.ExternalAppBrowserActivity",
         )
     }
 }

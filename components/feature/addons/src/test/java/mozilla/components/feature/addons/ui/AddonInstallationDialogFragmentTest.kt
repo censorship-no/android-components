@@ -23,6 +23,7 @@ import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.whenever
+import mozilla.components.support.utils.ext.getParcelableCompat
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -50,13 +51,17 @@ class AddonInstallationDialogFragmentTest {
     @Test
     fun `build dialog`() {
         val addon = Addon(
-            "id", translatableName = mapOf(Addon.DEFAULT_LOCALE to "my_addon"),
-            permissions = listOf("privacy", "<all_urls>", "tabs")
+            "id",
+            translatableName = mapOf(Addon.DEFAULT_LOCALE to "my_addon"),
+            permissions = listOf("privacy", "<all_urls>", "tabs"),
         )
         val mockedCollectionProvider = mock<AddonCollectionProvider>()
         val fragment = createAddonInstallationDialogFragment(addon, mockedCollectionProvider)
         assertSame(mockedCollectionProvider, fragment.addonCollectionProvider)
-        assertSame(addon, fragment.arguments?.getParcelable(KEY_INSTALLED_ADDON))
+        assertSame(
+            addon,
+            fragment.arguments?.getParcelableCompat(KEY_INSTALLED_ADDON, Addon::class.java),
+        )
 
         doReturn(testContext).`when`(fragment).requireContext()
         val dialog = fragment.onCreateDialog(null)
@@ -64,7 +69,8 @@ class AddonInstallationDialogFragmentTest {
         val name = addon.translateName(testContext)
         val titleTextView = dialog.findViewById<TextView>(R.id.title)
         val description = dialog.findViewById<TextView>(R.id.description)
-        val allowedInPrivateBrowsing = dialog.findViewById<AppCompatCheckBox>(R.id.allow_in_private_browsing)
+        val allowedInPrivateBrowsing =
+            dialog.findViewById<AppCompatCheckBox>(R.id.allow_in_private_browsing)
 
         assertTrue(titleTextView.text.contains(name))
         assertTrue(description.text.contains(testContext.getString(R.string.mozac_feature_addons_installed_dialog_description)))
@@ -92,7 +98,8 @@ class AddonInstallationDialogFragmentTest {
         val dialog = fragment.onCreateDialog(null)
         dialog.show()
         val confirmButton = dialog.findViewById<Button>(R.id.confirm_button)
-        val allowedInPrivateBrowsing = dialog.findViewById<AppCompatCheckBox>(R.id.allow_in_private_browsing)
+        val allowedInPrivateBrowsing =
+            dialog.findViewById<AppCompatCheckBox>(R.id.allow_in_private_browsing)
         confirmButton.performClick()
         assertTrue(confirmationWasExecuted)
         assertFalse(allowInPrivateBrowsing)
@@ -149,9 +156,9 @@ class AddonInstallationDialogFragmentTest {
         val fragment = createAddonInstallationDialogFragment(addon, mockedCollectionProvider)
 
         whenever(mockedCollectionProvider.getAddonIconBitmap(addon)).thenReturn(bitmap)
-        assertNull(fragment.arguments?.getParcelable<Bitmap>(KEY_ICON))
+        assertNull(fragment.arguments?.getParcelableCompat(KEY_ICON, Bitmap::class.java))
         fragment.fetchIcon(addon, mockedImageView, scope).join()
-        assertNotNull(fragment.arguments?.getParcelable<Bitmap>(KEY_ICON))
+        assertNotNull(fragment.arguments?.getParcelableCompat(KEY_ICON, Bitmap::class.java))
         verify(mockedImageView).setImageDrawable(Mockito.any())
     }
 
@@ -202,9 +209,15 @@ class AddonInstallationDialogFragmentTest {
     private fun createAddonInstallationDialogFragment(
         addon: Addon,
         addonCollectionProvider: AddonCollectionProvider,
-        promptsStyling: AddonInstallationDialogFragment.PromptsStyling? = null
+        promptsStyling: AddonInstallationDialogFragment.PromptsStyling? = null,
     ): AddonInstallationDialogFragment {
-        return spy(AddonInstallationDialogFragment.newInstance(addon, addonCollectionProvider, promptsStyling = promptsStyling)).apply {
+        return spy(
+            AddonInstallationDialogFragment.newInstance(
+                addon,
+                addonCollectionProvider,
+                promptsStyling = promptsStyling,
+            ),
+        ).apply {
             doNothing().`when`(this).dismiss()
         }
     }

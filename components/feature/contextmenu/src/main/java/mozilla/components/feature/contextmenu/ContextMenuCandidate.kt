@@ -27,6 +27,7 @@ import mozilla.components.support.ktx.android.content.addContact
 import mozilla.components.support.ktx.android.content.share
 import mozilla.components.support.ktx.kotlin.stripMailToProtocol
 import mozilla.components.support.ktx.kotlin.takeOrReplace
+import mozilla.components.support.utils.ext.queryIntentActivitiesCompat
 
 /**
  * A candidate for an item to be displayed in the context menu.
@@ -41,7 +42,7 @@ data class ContextMenuCandidate(
     val id: String,
     val label: String,
     val showFor: (SessionState, HitResult) -> Boolean,
-    val action: (SessionState, HitResult) -> Unit
+    val action: (SessionState, HitResult) -> Unit,
 ) {
     companion object {
         // This is used for limiting image title, in order to prevent crashes caused by base64 encoded image
@@ -58,19 +59,19 @@ data class ContextMenuCandidate(
             tabsUseCases: TabsUseCases,
             contextMenuUseCases: ContextMenuUseCases,
             snackBarParentView: View,
-            snackbarDelegate: SnackbarDelegate = DefaultSnackbarDelegate()
+            snackbarDelegate: SnackbarDelegate = DefaultSnackbarDelegate(),
         ): List<ContextMenuCandidate> = listOf(
             createOpenInNewTabCandidate(
                 context,
                 tabsUseCases,
                 snackBarParentView,
-                snackbarDelegate
+                snackbarDelegate,
             ),
             createOpenInPrivateTabCandidate(
                 context,
                 tabsUseCases,
                 snackBarParentView,
-                snackbarDelegate
+                snackbarDelegate,
             ),
             createCopyLinkCandidate(context, snackBarParentView, snackbarDelegate),
             createDownloadLinkCandidate(context, contextMenuUseCases),
@@ -80,14 +81,14 @@ data class ContextMenuCandidate(
                 context,
                 tabsUseCases,
                 snackBarParentView,
-                snackbarDelegate
+                snackbarDelegate,
             ),
             createSaveImageCandidate(context, contextMenuUseCases),
             createSaveVideoAudioCandidate(context, contextMenuUseCases),
             createCopyImageLocationCandidate(context, snackBarParentView, snackbarDelegate),
             createAddContactCandidate(context),
             createShareEmailAddressCandidate(context),
-            createCopyEmailAddressCandidate(context, snackBarParentView, snackbarDelegate)
+            createCopyEmailAddressCandidate(context, snackBarParentView, snackbarDelegate),
         )
 
         /**
@@ -121,18 +122,18 @@ data class ContextMenuCandidate(
                     selectTab = false,
                     startLoading = true,
                     parentId = parent.id,
-                    contextId = parent.contextId
+                    contextId = parent.contextId,
                 )
 
                 snackbarDelegate.show(
                     snackBarParentView = snackBarParentView,
                     text = R.string.mozac_feature_contextmenu_snackbar_new_tab_opened,
                     duration = Snackbar.LENGTH_LONG,
-                    action = R.string.mozac_feature_contextmenu_snackbar_action_switch
+                    action = R.string.mozac_feature_contextmenu_snackbar_action_switch,
                 ) {
                     tabsUseCases.selectTab(tab)
                 }
-            }
+            },
         )
 
         /**
@@ -164,18 +165,18 @@ data class ContextMenuCandidate(
                     selectTab = false,
                     startLoading = true,
                     parentId = parent.id,
-                    private = true
+                    private = true,
                 )
 
                 snackbarDelegate.show(
                     snackBarParentView,
                     R.string.mozac_feature_contextmenu_snackbar_new_private_tab_opened,
                     Snackbar.LENGTH_LONG,
-                    R.string.mozac_feature_contextmenu_snackbar_action_switch
+                    R.string.mozac_feature_contextmenu_snackbar_action_switch,
                 ) {
                     tabsUseCases.selectTab(tab)
                 }
-            }
+            },
         )
 
         /**
@@ -208,7 +209,7 @@ data class ContextMenuCandidate(
                 } else if (marketPlaceIntent != null) {
                     appLinksUseCases.openAppLink(marketPlaceIntent)
                 }
-            }
+            },
         )
 
         /**
@@ -229,7 +230,11 @@ data class ContextMenuCandidate(
                     hitResult.isMailto() &&
                     additionalValidation(tab, hitResult)
             },
-            action = { _, hitResult -> context.addContact(hitResult.getLink().stripMailToProtocol()) }
+            action = { _, hitResult ->
+                context.addContact(
+                    hitResult.getLink().stripMailToProtocol(),
+                )
+            },
         )
 
         /**
@@ -250,7 +255,7 @@ data class ContextMenuCandidate(
                     hitResult.isMailto() &&
                     additionalValidation(tab, hitResult)
             },
-            action = { _, hitResult -> context.share(hitResult.getLink().stripMailToProtocol()) }
+            action = { _, hitResult -> context.share(hitResult.getLink().stripMailToProtocol()) },
         )
 
         /**
@@ -278,11 +283,14 @@ data class ContextMenuCandidate(
             action = { _, hitResult ->
                 val email = hitResult.getLink().stripMailToProtocol()
                 clipPlaintText(
-                    context, email, email,
-                    R.string.mozac_feature_contextmenu_snackbar_email_address_copied, snackBarParentView,
-                    snackbarDelegate
+                    context,
+                    email,
+                    email,
+                    R.string.mozac_feature_contextmenu_snackbar_email_address_copied,
+                    snackBarParentView,
+                    snackbarDelegate,
                 )
-            }
+            },
         )
 
         /**
@@ -316,18 +324,18 @@ data class ContextMenuCandidate(
                     startLoading = true,
                     parentId = parent.id,
                     contextId = parent.contextId,
-                    private = parent.content.private
+                    private = parent.content.private,
                 )
 
                 snackbarDelegate.show(
                     snackBarParentView = snackBarParentView,
                     text = R.string.mozac_feature_contextmenu_snackbar_new_tab_opened,
                     duration = Snackbar.LENGTH_LONG,
-                    action = R.string.mozac_feature_contextmenu_snackbar_action_switch
+                    action = R.string.mozac_feature_contextmenu_snackbar_action_switch,
                 ) {
                     tabsUseCases.selectTab(tab)
                 }
-            }
+            },
         )
 
         /**
@@ -353,9 +361,13 @@ data class ContextMenuCandidate(
             action = { tab, hitResult ->
                 contextMenuUseCases.injectDownload(
                     tab.id,
-                    DownloadState(hitResult.src, skipConfirmation = true, private = tab.content.private)
+                    DownloadState(
+                        hitResult.src,
+                        skipConfirmation = true,
+                        private = tab.content.private,
+                    ),
                 )
-            }
+            },
         )
 
         /**
@@ -381,9 +393,13 @@ data class ContextMenuCandidate(
             action = { tab, hitResult ->
                 contextMenuUseCases.injectDownload(
                     tab.id,
-                    DownloadState(hitResult.src, skipConfirmation = true, private = tab.content.private)
+                    DownloadState(
+                        hitResult.src,
+                        skipConfirmation = true,
+                        private = tab.content.private,
+                    ),
                 )
-            }
+            },
         )
 
         /**
@@ -409,9 +425,13 @@ data class ContextMenuCandidate(
             action = { tab, hitResult ->
                 contextMenuUseCases.injectDownload(
                     tab.id,
-                    DownloadState(hitResult.src, skipConfirmation = true, private = tab.content.private)
+                    DownloadState(
+                        hitResult.src,
+                        skipConfirmation = true,
+                        private = tab.content.private,
+                    ),
                 )
-            }
+            },
         )
 
         /**
@@ -442,10 +462,10 @@ data class ContextMenuCandidate(
                     createShareIntent(
                         intent,
                         context,
-                        context.getString(R.string.mozac_feature_contextmenu_share_link)
-                    )
+                        context.getString(R.string.mozac_feature_contextmenu_share_link),
+                    ),
                 )
-            }
+            },
         )
 
         /**
@@ -454,10 +474,11 @@ data class ContextMenuCandidate(
         private fun createShareIntent(
             intent: Intent,
             context: Context,
-            title: CharSequence
+            title: CharSequence,
         ): Intent {
             val chooserIntent: Intent
-            val resolveInfos = context.packageManager.queryIntentActivities(intent, 0).toHashSet()
+            val resolveInfos =
+                context.packageManager.queryIntentActivitiesCompat(intent, 0).toHashSet()
 
             val excludedComponentNames = resolveInfos
                 .map { it.activityInfo }
@@ -470,7 +491,7 @@ data class ContextMenuCandidate(
                 chooserIntent = Intent.createChooser(intent, title)
                     .putExtra(
                         Intent.EXTRA_EXCLUDE_COMPONENTS,
-                        excludedComponentNames.toTypedArray()
+                        excludedComponentNames.toTypedArray(),
                     )
             } else {
                 var targetIntents = resolveInfos
@@ -484,7 +505,7 @@ data class ContextMenuCandidate(
                             targetIntent,
                             activityInfo.packageName,
                             resolveInfo.labelRes,
-                            resolveInfo.icon
+                            resolveInfo.icon,
                         )
                     }
 
@@ -499,7 +520,7 @@ data class ContextMenuCandidate(
                 }
                 chooserIntent.putExtra(
                     Intent.EXTRA_INITIAL_INTENTS,
-                    targetIntents.toTypedArray<Parcelable>()
+                    targetIntents.toTypedArray<Parcelable>(),
                 )
             }
             chooserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -531,10 +552,10 @@ data class ContextMenuCandidate(
                     tab.id,
                     ShareInternetResourceState(
                         url = hitResult.src,
-                        private = tab.content.private
-                    )
+                        private = tab.content.private,
+                    ),
                 )
-            }
+            },
         )
 
         /**
@@ -561,11 +582,14 @@ data class ContextMenuCandidate(
             },
             action = { _, hitResult ->
                 clipPlaintText(
-                    context, hitResult.getLink(), hitResult.getLink(),
-                    R.string.mozac_feature_contextmenu_snackbar_link_copied, snackBarParentView,
-                    snackbarDelegate
+                    context,
+                    hitResult.getLink(),
+                    hitResult.getLink(),
+                    R.string.mozac_feature_contextmenu_snackbar_link_copied,
+                    snackBarParentView,
+                    snackbarDelegate,
                 )
-            }
+            },
         )
 
         /**
@@ -592,11 +616,14 @@ data class ContextMenuCandidate(
             },
             action = { _, hitResult ->
                 clipPlaintText(
-                    context, hitResult.getLink(), hitResult.src,
-                    R.string.mozac_feature_contextmenu_snackbar_link_copied, snackBarParentView,
-                    snackbarDelegate
+                    context,
+                    hitResult.getLink(),
+                    hitResult.src,
+                    R.string.mozac_feature_contextmenu_snackbar_link_copied,
+                    snackBarParentView,
+                    snackbarDelegate,
                 )
-            }
+            },
         )
 
         @Suppress("LongParameterList")
@@ -606,7 +633,7 @@ data class ContextMenuCandidate(
             plainText: String,
             displayTextId: Int,
             snackBarParentView: View,
-            snackbarDelegate: SnackbarDelegate = DefaultSnackbarDelegate()
+            snackbarDelegate: SnackbarDelegate = DefaultSnackbarDelegate(),
         ) {
             val clipboardManager =
                 context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -616,7 +643,7 @@ data class ContextMenuCandidate(
             snackbarDelegate.show(
                 snackBarParentView = snackBarParentView,
                 text = displayTextId,
-                duration = Snackbar.LENGTH_SHORT
+                duration = Snackbar.LENGTH_SHORT,
             )
         }
     }
@@ -639,7 +666,7 @@ data class ContextMenuCandidate(
             text: Int,
             duration: Int,
             action: Int = 0,
-            listener: ((v: View) -> Unit)? = null
+            listener: ((v: View) -> Unit)? = null,
         )
     }
 }
@@ -689,7 +716,9 @@ internal fun HitResult.getLink(): String = when (this) {
     is HitResult.IMAGE ->
         if (title.isNullOrBlank()) {
             src.takeOrReplace(MAX_TITLE_LENGTH, "image")
-        } else title.toString()
+        } else {
+            title.toString()
+        }
     is HitResult.VIDEO ->
         if (title.isNullOrBlank()) src else title.toString()
     is HitResult.AUDIO ->
@@ -717,12 +746,12 @@ class DefaultSnackbarDelegate : ContextMenuCandidate.SnackbarDelegate {
         text: Int,
         duration: Int,
         action: Int,
-        listener: ((v: View) -> Unit)?
+        listener: ((v: View) -> Unit)?,
     ) {
         val snackbar = Snackbar.make(
             snackBarParentView,
             text,
-            duration
+            duration,
         )
 
         if (action != 0 && listener != null) {

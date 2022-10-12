@@ -25,6 +25,7 @@ import androidx.core.content.ContextCompat
 import kotlinx.parcelize.Parcelize
 import mozilla.components.feature.downloads.R
 import mozilla.components.feature.downloads.databinding.MozacDownloadCancelBinding
+import mozilla.components.support.utils.ext.getParcelableCompat
 
 /**
  * The dialog warns the user that closing last private tab leads to cancellation of active private
@@ -39,8 +40,12 @@ class DownloadCancelDialogFragment : AppCompatDialogFragment() {
     private val downloadCount by lazy { safeArguments.getInt(KEY_DOWNLOAD_COUNT) }
     private val tabId by lazy { safeArguments.getString(KEY_TAB_ID) }
     private val source by lazy { safeArguments.getString(KEY_SOURCE) }
-    private val promptStyling by lazy { safeArguments.getParcelable(KEY_STYLE) ?: PromptStyling() }
-    private val promptText by lazy { safeArguments.getParcelable(KEY_TEXT) ?: PromptText() }
+    private val promptStyling by lazy {
+        safeArguments.getParcelableCompat(KEY_STYLE, PromptStyling::class.java) ?: PromptStyling()
+    }
+    private val promptText by lazy {
+        safeArguments.getParcelableCompat(KEY_TEXT, PromptText::class.java) ?: PromptText()
+    }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         return Dialog(requireContext()).apply {
@@ -57,7 +62,7 @@ class DownloadCancelDialogFragment : AppCompatDialogFragment() {
                     // This must be called after addContentView, or it won't fully fill to the edge.
                     setLayout(
                         ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
                     )
                 }
             }
@@ -78,8 +83,8 @@ class DownloadCancelDialogFragment : AppCompatDialogFragment() {
                 rootView,
                 LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.MATCH_PARENT
-                )
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                ),
             )
         }
     }
@@ -88,7 +93,7 @@ class DownloadCancelDialogFragment : AppCompatDialogFragment() {
     private fun createContainer() = LayoutInflater.from(requireContext()).inflate(
         R.layout.mozac_download_cancel,
         null,
-        false
+        false,
     ).apply {
         with(MozacDownloadCancelBinding.bind(this)) {
             acceptButton.setOnClickListener {
@@ -122,8 +127,8 @@ class DownloadCancelDialogFragment : AppCompatDialogFragment() {
                         shape.setColor(
                             ContextCompat.getColor(
                                 requireContext(),
-                                positiveButtonBackgroundColor
-                            )
+                                positiveButtonBackgroundColor,
+                            ),
                         )
                         shape.cornerRadius = positiveButtonRadius
                         acceptButton.background = shape
@@ -141,7 +146,7 @@ class DownloadCancelDialogFragment : AppCompatDialogFragment() {
     @VisibleForTesting
     internal fun buildWarningText(downloadCount: Int, @StringRes stringId: Int) = String.format(
         getString(stringId),
-        downloadCount
+        downloadCount,
     )
 
     companion object {
@@ -165,7 +170,7 @@ class DownloadCancelDialogFragment : AppCompatDialogFragment() {
             promptText: PromptText? = null,
             promptStyling: PromptStyling? = null,
             onPositiveButtonClicked: ((tabId: String?, source: String?) -> Unit)? = null,
-            onNegativeButtonClicked: (() -> Unit)? = null
+            onNegativeButtonClicked: (() -> Unit)? = null,
         ): DownloadCancelDialogFragment {
             return DownloadCancelDialogFragment().apply {
                 this.arguments = Bundle().apply {
@@ -194,7 +199,7 @@ class DownloadCancelDialogFragment : AppCompatDialogFragment() {
         val positiveButtonBackgroundColor: Int? = null,
         @ColorRes
         val positiveButtonTextColor: Int? = null,
-        val positiveButtonRadius: Float? = null
+        val positiveButtonRadius: Float? = null,
     ) : Parcelable
 
     /**
@@ -209,6 +214,6 @@ class DownloadCancelDialogFragment : AppCompatDialogFragment() {
         @StringRes
         val acceptText: Int = R.string.mozac_feature_downloads_cancel_active_downloads_accept,
         @StringRes
-        val denyText: Int = R.string.mozac_feature_downloads_cancel_active_private_downloads_deny
+        val denyText: Int = R.string.mozac_feature_downloads_cancel_active_private_downloads_deny,
     ) : Parcelable
 }

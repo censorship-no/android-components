@@ -24,6 +24,7 @@ import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.whenever
+import mozilla.components.support.utils.ext.stopForegroundCompat
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
@@ -60,14 +61,17 @@ class AbstractPrivateNotificationServiceTest {
 
     @Test
     fun `WHEN the service is created THEN start foreground is called`() {
-        val service = spy(object : MockService() {
-            override fun NotificationCompat.Builder.buildNotification() {
-                setCategory(Notification.CATEGORY_STATUS)
-            }
-            override fun notifyLocaleChanged() {
-                // NOOP
-            }
-        })
+        val service = spy(
+            object : MockService() {
+                override fun NotificationCompat.Builder.buildNotification() {
+                    setCategory(Notification.CATEGORY_STATUS)
+                }
+
+                override fun notifyLocaleChanged() {
+                    // NOOP
+                }
+            },
+        )
         attachContext(service)
 
         val notification = argumentCaptor<Notification>()
@@ -92,7 +96,7 @@ class AbstractPrivateNotificationServiceTest {
         service.onTaskRemoved(mock())
 
         verify(service.store).dispatch(TabListAction.RemoveAllPrivateTabsAction)
-        verify(service).stopForeground(true)
+        verify(service).stopForegroundCompat(true)
         verify(service).stopSelf()
     }
 
@@ -120,9 +124,10 @@ class AbstractPrivateNotificationServiceTest {
     private open class MockServiceWithStore : AbstractPrivateNotificationService() {
         override val store = BrowserStore(
             BrowserState(
-                locale = null
-            )
+                locale = null,
+            ),
         )
+
         override fun NotificationCompat.Builder.buildNotification() = Unit
         override fun notifyLocaleChanged() {
             // NOOP
@@ -131,7 +136,8 @@ class AbstractPrivateNotificationServiceTest {
 
     private fun attachContext(service: Service) {
         Mockito.doReturn(preferences).`when`(service).getSharedPreferences(anyString(), anyInt())
-        Mockito.doReturn(notificationManager).`when`(service).getSystemService<NotificationManager>()
+        Mockito.doReturn(notificationManager).`when`(service)
+            .getSystemService<NotificationManager>()
         Mockito.doReturn("").`when`(service).getString(anyInt())
         Mockito.doReturn("").`when`(service).packageName
         Mockito.doReturn(testContext.resources).`when`(service).resources

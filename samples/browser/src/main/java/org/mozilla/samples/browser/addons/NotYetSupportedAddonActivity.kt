@@ -18,6 +18,8 @@ import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.ui.UnsupportedAddonsAdapter
 import mozilla.components.feature.addons.ui.UnsupportedAddonsAdapterDelegate
+import mozilla.components.support.utils.ext.getParcelableArrayListCompat
+import mozilla.components.support.utils.ext.getParcelableArrayListExtraCompat
 import org.mozilla.samples.browser.R
 import org.mozilla.samples.browser.ext.components
 
@@ -32,7 +34,7 @@ class NotYetSupportedAddonActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val addons = requireNotNull(intent.getParcelableArrayListExtra<Addon>("add_ons"))
+        val addons = requireNotNull(intent.getParcelableArrayListExtraCompat("add_ons", Addon::class.java))
 
         supportFragmentManager
             .beginTransaction()
@@ -50,9 +52,10 @@ class NotYetSupportedAddonActivity : AppCompatActivity() {
         override fun onCreateView(
             inflater: LayoutInflater,
             container: ViewGroup?,
-            savedInstanceState: Bundle?
+            savedInstanceState: Bundle?,
         ): View? {
-            addons = requireNotNull(arguments?.getParcelableArrayList("add_ons"))
+            addons =
+                requireNotNull(arguments?.getParcelableArrayListCompat("add_ons", Addon::class.java))
             return inflater.inflate(R.layout.fragment_not_yet_supported_addons, container, false)
         }
 
@@ -64,7 +67,7 @@ class NotYetSupportedAddonActivity : AppCompatActivity() {
             adapter = UnsupportedAddonsAdapter(
                 addonManager = context.components.addonManager,
                 unsupportedAddonsAdapterDelegate = this@NotYetSupportedAddonFragment,
-                addons = addons
+                addons = addons,
             )
 
             recyclerView.layoutManager = LinearLayoutManager(context)
@@ -84,7 +87,7 @@ class NotYetSupportedAddonActivity : AppCompatActivity() {
             Toast.makeText(context, "Successfully removed add-on", Toast.LENGTH_SHORT)
                 .show()
             if (adapter?.itemCount == 0) {
-                activity?.onBackPressed()
+                activity?.onBackPressedDispatcher?.onBackPressed()
             }
         }
 

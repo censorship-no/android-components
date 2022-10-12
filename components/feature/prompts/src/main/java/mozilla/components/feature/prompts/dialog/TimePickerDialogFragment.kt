@@ -34,6 +34,7 @@ import mozilla.components.feature.prompts.ext.toCalendar
 import mozilla.components.feature.prompts.ext.year
 import mozilla.components.feature.prompts.widget.MonthAndYearPicker
 import mozilla.components.feature.prompts.widget.TimePrecisionPicker
+import mozilla.components.support.utils.ext.getSerializableCompat
 import mozilla.components.support.utils.TimePicker.shouldShowSecondsPicker
 import java.util.Calendar
 import java.util.Date
@@ -57,15 +58,21 @@ internal class TimePickerDialogFragment :
     DialogInterface.OnClickListener,
     MonthAndYearPicker.OnDateSetListener,
     TimePrecisionPicker.OnTimeSetListener {
-    private val initialDate: Date by lazy { safeArguments.getSerializable(KEY_INITIAL_DATE) as Date }
-    private val minimumDate: Date? by lazy { safeArguments.getSerializable((KEY_MIN_DATE)) as? Date }
-    private val maximumDate: Date? by lazy { safeArguments.getSerializable(KEY_MAX_DATE) as? Date }
+    private val initialDate: Date by lazy {
+        safeArguments.getSerializableCompat(KEY_INITIAL_DATE, Date::class.java) as Date
+    }
+    private val minimumDate: Date? by lazy {
+        safeArguments.getSerializableCompat(KEY_MIN_DATE, Date::class.java) as? Date
+    }
+    private val maximumDate: Date? by lazy {
+        safeArguments.getSerializableCompat(KEY_MAX_DATE, Date::class.java) as? Date
+    }
     private val selectionType: Int by lazy { safeArguments.getInt(KEY_SELECTION_TYPE) }
     private val stepSize: String? by lazy { safeArguments.getString(KEY_STEP_VALUE) }
 
     @VisibleForTesting(otherwise = PRIVATE)
     internal var selectedDate: Date
-        get() = safeArguments.getSerializable(KEY_SELECTED_DATE) as Date
+        get() = safeArguments.getSerializableCompat(KEY_SELECTED_DATE, Date::class.java) as Date
         set(value) {
             safeArguments.putSerializable(KEY_SELECTED_DATE, value)
         }
@@ -81,30 +88,50 @@ internal class TimePickerDialogFragment :
                     this@TimePickerDialogFragment,
                     cal.year,
                     cal.month,
-                    cal.day
+                    cal.day,
                 ).apply { setMinMaxDate(datePicker) }
             }
             SELECTION_TYPE_DATE_AND_TIME -> AlertDialog.Builder(context)
                 .setView(inflateDateTimePicker(LayoutInflater.from(context)))
                 .create()
                 .also {
-                    it.setButton(BUTTON_POSITIVE, context.getString(R.string.mozac_feature_prompts_set_date), this)
-                    it.setButton(BUTTON_NEGATIVE, context.getString(R.string.mozac_feature_prompts_cancel), this)
+                    it.setButton(
+                        BUTTON_POSITIVE,
+                        context.getString(R.string.mozac_feature_prompts_set_date),
+                        this,
+                    )
+                    it.setButton(
+                        BUTTON_NEGATIVE,
+                        context.getString(R.string.mozac_feature_prompts_cancel),
+                        this,
+                    )
                 }
             SELECTION_TYPE_MONTH -> AlertDialog.Builder(context)
                 .setTitle(R.string.mozac_feature_prompts_set_month)
                 .setView(inflateDateMonthPicker())
                 .create()
                 .also {
-                    it.setButton(BUTTON_POSITIVE, context.getString(R.string.mozac_feature_prompts_set_date), this)
-                    it.setButton(BUTTON_NEGATIVE, context.getString(R.string.mozac_feature_prompts_cancel), this)
+                    it.setButton(
+                        BUTTON_POSITIVE,
+                        context.getString(R.string.mozac_feature_prompts_set_date),
+                        this,
+                    )
+                    it.setButton(
+                        BUTTON_NEGATIVE,
+                        context.getString(R.string.mozac_feature_prompts_cancel),
+                        this,
+                    )
                 }
             else -> throw IllegalArgumentException()
         }
 
         dialog.also {
             it.setCancelable(true)
-            it.setButton(BUTTON_NEUTRAL, context.getString(R.string.mozac_feature_prompts_clear), this)
+            it.setButton(
+                BUTTON_NEUTRAL,
+                context.getString(R.string.mozac_feature_prompts_clear),
+                this,
+            )
         }
 
         return dialog
@@ -120,7 +147,6 @@ internal class TimePickerDialogFragment :
 
     // Create the appropriate time picker dialog for the given step value.
     private fun createTimePickerDialog(context: Context): AlertDialog {
-
         // Create the Android time picker dialog
         fun createTimePickerDialog(): AlertDialog {
             return initialDate.toCalendar().let { cal ->
@@ -129,7 +155,7 @@ internal class TimePickerDialogFragment :
                     this,
                     cal.hour,
                     cal.minute,
-                    DateFormat.is24HourFormat(context)
+                    DateFormat.is24HourFormat(context),
                 )
             }
         }
@@ -147,20 +173,20 @@ internal class TimePickerDialogFragment :
                         minTime = minimumDate?.toCalendar()
                             ?: MonthAndYearPicker.getDefaultMinDate(),
                         stepValue = stepValue,
-                        timeSetListener = this
-                    )
+                        timeSetListener = this,
+                    ),
                 )
                 .create()
                 .also {
                     it.setButton(
                         BUTTON_POSITIVE,
                         context.getString(R.string.mozac_feature_prompts_set_date),
-                        this
+                        this,
                     )
                     it.setButton(
                         BUTTON_NEGATIVE,
                         context.getString(R.string.mozac_feature_prompts_cancel),
-                        this
+                        this,
                     )
                 }
         }
@@ -195,7 +221,7 @@ internal class TimePickerDialogFragment :
             selectedDate = initialDate.toCalendar(),
             maxDate = maximumDate?.toCalendar() ?: MonthAndYearPicker.getDefaultMaxDate(),
             minDate = minimumDate?.toCalendar() ?: MonthAndYearPicker.getDefaultMinDate(),
-            dateSetListener = this
+            dateSetListener = this,
         )
     }
 
@@ -226,7 +252,7 @@ internal class TimePickerDialogFragment :
         hour: Int,
         minute: Int,
         second: Int,
-        millisecond: Int
+        millisecond: Int,
     ) {
         val calendar = selectedDate.toCalendar()
         calendar.hour = hour

@@ -26,6 +26,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.downloads.AbstractFetchDownloadService
 import mozilla.components.feature.downloads.AbstractFetchDownloadService.Companion.EXTRA_DOWNLOAD_STATUS
 import mozilla.components.feature.downloads.ext.isScheme
+import mozilla.components.support.utils.ext.getSerializableExtraCompat
 import kotlin.reflect.KClass
 
 /**
@@ -38,8 +39,10 @@ class FetchDownloadManager<T : AbstractFetchDownloadService>(
     private val applicationContext: Context,
     private val store: BrowserStore,
     private val service: KClass<T>,
-    private val broadcastManager: LocalBroadcastManager = LocalBroadcastManager.getInstance(applicationContext),
-    override var onDownloadStopped: onDownloadStopped = noop
+    private val broadcastManager: LocalBroadcastManager = LocalBroadcastManager.getInstance(
+        applicationContext,
+    ),
+    override var onDownloadStopped: onDownloadStopped = noop,
 ) : BroadcastReceiver(), DownloadManager {
 
     private var isSubscribedReceiver = false
@@ -113,8 +116,9 @@ class FetchDownloadManager<T : AbstractFetchDownloadService>(
     override fun onReceive(context: Context, intent: Intent) {
         val downloadID = intent.getStringExtra(EXTRA_DOWNLOAD_ID) ?: ""
         val download = store.state.downloads[downloadID]
-        val downloadStatus = intent.getSerializableExtra(EXTRA_DOWNLOAD_STATUS)
-            as Status
+        val downloadStatus =
+            intent.getSerializableExtraCompat(EXTRA_DOWNLOAD_STATUS, Status::class.java)
+                as Status
 
         if (download != null) {
             onDownloadStopped(download, downloadID, downloadStatus)
