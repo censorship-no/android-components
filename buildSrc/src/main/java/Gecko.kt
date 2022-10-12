@@ -4,17 +4,18 @@
 
 /**
  * Gecko version and release channel constants used by this version of Android Components.
+ * CENO: Modified to use ie.equalit.geckoview fork
  */
 object Gecko {
     /**
      * GeckoView Version.
      */
-    const val version = "106.0.20221010181815"
+    const val version = "107.0.20221011144955"
 
     /**
      * GeckoView channel
      */
-    val channel = GeckoChannel.RELEASE
+    val channel = GeckoChannel.CENO
 }
 
 /**
@@ -23,7 +24,8 @@ object Gecko {
 enum class GeckoChannel(
     val artifactName: String
 ) {
-    NIGHTLY("geckoview-nightly-omni"),
+    NIGHTLY("geckoview-default-omni"),
     BETA("geckoview-beta-omni"),
-    RELEASE("geckoview-omni")
+    RELEASE("geckoview-omni"),
+    CENO("geckoview-ceno-omni")
 }

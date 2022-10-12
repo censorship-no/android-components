@@ -161,7 +161,8 @@ object Dependencies {
     const val tools_detekt_api = "io.gitlab.arturbosch.detekt:detekt-api:${Versions.detekt}"
     const val tools_detekt_test = "io.gitlab.arturbosch.detekt:detekt-test:${Versions.detekt}"
 
-    val mozilla_geckoview = "org.mozilla.geckoview:${Gecko.channel.artifactName}:${Gecko.version}"
+    /* CENO: Use our fork of GeckoView */
+    val mozilla_geckoview = "io.github.mhqz:${Gecko.channel.artifactName}:${Gecko.version}"
     const val mozilla_fxa = "org.mozilla.appservices:fxaclient:${Versions.mozilla_appservices}"
     const val mozilla_nimbus = "org.mozilla.appservices:nimbus:${Versions.mozilla_appservices}"
     const val mozilla_glean_forUnitTests = "org.mozilla.telemetry:glean-native-forUnitTests:${Versions.mozilla_glean}"
