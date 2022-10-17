@@ -14,7 +14,8 @@
     <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />
 
     <!-- Needed to prompt the user to give permission to install a downloaded apk -->
-    <uses-permission-sdk-23 android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- CENO: remove this permission, we aren't using it yet, add back when needed -->
+    <!-- <uses-permission-sdk-23 android:name="android.permission.REQUEST_INSTALL_PACKAGES" /> -->
 
     <application android:supportsRtl="true">
         <provider
